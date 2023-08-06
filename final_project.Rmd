@@ -1,0 +1,106 @@
+---
+title: "Final Project - Is there an association with age and higher levels of HbA1c?"
+Author: Andy Higuera
+output:
+  html_document:
+    df_print: paged
+---
+
+# Introduction/Setup
+
+Data dictionary: 
+ID = unique identifier to patient (integer)
+No_Pation = Patient ID (integer)
+Gender = Gender of patient, either (string):
+    Male (M)
+    Female (F)
+Age = Age of patient (integer)
+Urea = Urea levels of patient (double)
+Cr = Creatine levels of patient (double)
+HbA1c = HbA1c levels of patient (double)
+Chol = Cholesterol levels of patient (double)
+TG = Triglyceride levels of patient (double)
+HDL = HDL levels of patient (double)
+LDL = LDL levels of patient (double)
+VLDL = VLDL levels of patient (double)
+BMI = BMI of patient (double)
+CLASS = Type of diabetic class for patient, either (string):
+  Non-diabetic (N)
+  Predict-Diabetic (P)
+  Diabetic (Y)
+
+```{r include=FALSE}
+library(tidyverse)
+diabetes_data = read_csv("data/Dataset of Diabetes.csv")
+# The variable below excludes duplicate patient ID, but keeps the first occurrence. 
+diabetes_data2 = diabetes_data[!duplicated(diabetes_data$No_Pation), ]
+
+```
+
+# Figure 1.
+```{r}
+plot1 = 
+  ggplot(diabetes_data2, aes(x=AGE, y=HbA1c, col=CLASS)) +
+  geom_point() +
+  geom_smooth() +
+  labs(title = "Relationship between age and HbA1c levels in patients.")
+plot1
+```
+
+
+# Figure 2. In order to check for the distribution of the graph. We must look at it through a histogram. 
+```{r}
+plot13 = 
+  ggplot(diabetes_data2, aes(x=AGE)) +
+  geom_histogram()
+plot13
+```
+
+
+# Figure 3. Statistical testing: Since the graph is normally distributed we must use the Pearson's method. 
+
+```{r}
+stat_test1 = cor(diabetes_data2$AGE, diabetes_data2$HbA1c, method="pearson")
+stat_test1
+```
+## Give the result of the pearson statistical test we can 
+
+
+# Figure 4. Confounder 1: BMI levels of patient. 
+```{r}
+confounder1 = diabetes_data2 %>%
+  select(AGE, HbA1c, BMI, CLASS)
+
+confounder1$BMI = 
+  ifelse(confounder1$BMI<18.5, "Underweight",
+         ifelse(confounder1$BMI<25, "Normal weight", "Obese"))
+
+confounder1 %>%
+  ggplot(aes(x = AGE, y = HbA1c, col=BMI)) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~ BMI) +
+  labs(title = "Patient age and HbA1v compared with BMI levels")
+```
+
+
+# Confounder 2: Seperated LDL by ranges Optimal through Very high. Ranges referenced from HealthTab - Reference Ranges. (n.d.). https://www.healthtab.com/en/public_site/reference_ranges.
+```{r}
+confounder2 = diabetes_data2 %>%
+  select(AGE, HbA1c, LDL, CLASS)
+
+confounder2$LDL_label <- ifelse(confounder2$LDL < 2.6, "Optimal", 
+                                ifelse(confounder2$LDL < 3.4, "Near optimal",
+                                       ifelse(confounder2$LDL < 4.2, "Borderline high",
+                                              ifelse(confounder2$LDL < 4.9, "High", "Very High"))))
+```
+
+
+# Figure 5. Confounder 2 LDL levels of patients
+```{r}
+confounder2 %>% 
+  ggplot(aes(x = AGE, y = HbA1c, col=LDL_label)) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~ LDL_label) +
+  labs(title = "Patients age and HbA1c levels compared with LDL levels")
+```
+
